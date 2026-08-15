@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ផ្ទៀងផ្ទាត់ទិន្នន័យ (Verify)</title>
-  <!-- Telegram Web App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
@@ -14,46 +13,54 @@
       align-items: center;
       min-height: 100vh;
       margin: 0;
-      background-color: var(--tg-theme-bg-color, #f4f6f8);
-      color: var(--tg-theme-text-color, #222);
+      background: #f4f6f8;
+      color: #333;
       text-align: center;
     }
     .card {
-      background: var(--tg-theme-secondary-bg-color, #ffffff);
+      background: #ffffff;
       padding: 30px 20px;
       border-radius: 16px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       width: 85%;
       max-width: 350px;
     }
-    .loader {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid var(--tg-theme-button-color, #2481cc);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
+    .btn {
+      background-color: #2481cc;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 15px;
+      width: 100%;
     }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    .status {
+      font-size: 14px;
+      color: #666;
+      margin-top: 10px;
     }
-    h3 { margin-top: 0; }
-    p { color: var(--tg-theme-hint-color, #777); font-size: 14px; }
   </style>
 </head>
 <body>
+
   <div class="card">
-    <div class="loader" id="loader"></div>
-    <h3 id="title">កំពុងដំណើរការ...</h3>
-    <p id="desc">សូមរង់ចាំមួយភ្លែត Bot កំពុងកត់ត្រា IP និង Device</p>
+    <h3>🌐 ផ្ទៀងផ្ទាត់ទិន្នន័យ</h3>
+    <p id="ip-text">កំពុងស្វែងរក IP Address...</p>
+    <p id="device-text" class="status"></p>
+    <button id="send-btn" class="btn" onclick="sendDataToBot()">ផ្ញើទៅកាន់ Bot & បិទ</button>
   </div>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
+
+    let collectedData = {
+      ip: "Unknown",
+      device: "Unknown"
+    };
 
     function detectDevice() {
       const ua = navigator.userAgent;
@@ -63,36 +70,30 @@
       if (/Windows/i.test(ua)) return "Windows PC";
       if (/Macintosh/i.test(ua)) return "Mac PC";
       if (/Linux/i.test(ua)) return "Linux PC";
-      return "Unknown Device";
+      return "Browser/PC";
     }
 
-    async function sendData() {
-      let userIp = "Unknown";
-      let userDevice = detectDevice();
+    async function init() {
+      collectedData.device = detectDevice();
+      document.getElementById("device-text").innerText = "Device: " + collectedData.device;
 
       try {
         const res = await fetch("https://api64.ipify.org?format=json");
         const data = await res.json();
-        userIp = data.ip || "Unknown";
-      } catch (err) {
-        console.error("IP Error:", err);
+        collectedData.ip = data.ip || "Unknown";
+        document.getElementById("ip-text").innerText = "IP: " + collectedData.ip;
+      } catch (e) {
+        document.getElementById("ip-text").innerText = "Could not fetch IP";
       }
+    }
 
-      const payload = {
-        ip: userIp,
-        device: userDevice
-      };
-
-      // Send the IP and Device string back to your Telegram Bot
-      tg.sendData(JSON.stringify(payload));
-      
-      // Close WebApp automatically
+    function sendDataToBot() {
+      // Sends data back to Python Bot
+      tg.sendData(JSON.stringify(collectedData));
       tg.close();
     }
 
-    window.onload = () => {
-      setTimeout(sendData, 800);
-    };
+    window.onload = init;
   </script>
 </body>
 </html>
